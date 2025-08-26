@@ -112,15 +112,18 @@ function Ensure-Assignment([string]$ObjectId, [string]$RoleName, [string]$Scope)
 }
 
 function Resolve-PrincipalObjectId {
-  param([string]$ObjectId, [Guid]$ApplicationId)
+  param(
+    [string]$ObjectId,
+    [string]$ApplicationId   # changed from [Guid]
+  )
 
-  # If we already have an ObjectId string, use it
+  # If ObjectId is present, return it
   if ($ObjectId -and $ObjectId.Trim() -ne "") {
     return [string]$ObjectId
   }
 
-  # If only ApplicationId is present, resolve to SP object ID in this tenant
-  if ($ApplicationId -and $ApplicationId -ne [Guid]::Empty) {
+  # If ApplicationId looks like a GUID, try resolve
+  if ($ApplicationId -and $ApplicationId -match '^[0-9a-fA-F-]{36}$') {
     $sp = Get-AzADServicePrincipal -ApplicationId $ApplicationId -ErrorAction SilentlyContinue
     if ($sp -and $sp.Id) { return [string]$sp.Id }
   }
@@ -169,10 +172,10 @@ try {
   foreach ($p in $policies) {
     # $principal = $p.ObjectId
     $principal = Resolve-PrincipalObjectId -ObjectId $p.ObjectId -ApplicationId $p.ApplicationId
-                    if (-not $principal) {
-                      Write-Warning "Could not resolve principal for policy (ObjectId=$($p.ObjectId), AppId=$($p.ApplicationId))"
-                      continue
-                    }
+      if (-not $principal) {
+        Write-Warning "Skipping policy: cannot resolve principal (ObjectId=$($p.ObjectId), AppId=$($p.ApplicationId))"
+        continue
+      }
     $appid     = $p.ApplicationId
     $tenantId  = $p.TenantId
 

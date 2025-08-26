@@ -111,6 +111,32 @@ function Ensure-Assignment([string]$ObjectId, [string]$RoleName, [string]$Scope)
   return @{ Created = $false; Message = 'Skipped' }
 }
 
+function Resolve-PrincipalObjectId {
+  param([string]$ObjectId, [Guid]$ApplicationId)
+
+  # If policy already has an ObjectId, prefer it
+  if ($ObjectId -and $ObjectId -ne [string]::Empty) {
+    return $ObjectId
+  }
+
+  # If only ApplicationId is present, resolve to SP object ID in this tenant
+  if ($ApplicationId -and $ApplicationId -ne [Guid]::Empty) {
+    $sp = Get-AzADServicePrincipal -ApplicationId $ApplicationId -ErrorAction SilentlyContinue
+    if ($sp) { return $sp.Id }
+  }
+
+  return $null
+}
+
+function Fail-IfNullPrincipal {
+  param($ResolvedId, $Policy)
+  if (-not $ResolvedId) {
+    throw ("Cannot resolve principal for policy. ObjectId='{0}' ApplicationId='{1}' TenantId='{2}'" -f `
+      $Policy.ObjectId, $Policy.ApplicationId, $Policy.TenantId)
+  }
+}
+
+
 # -----------------------------
 # Main
 # -----------------------------

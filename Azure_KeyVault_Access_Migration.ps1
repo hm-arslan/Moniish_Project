@@ -167,7 +167,8 @@ try {
   $rows = @()
 
   foreach ($p in $policies) {
-    $principal = $p.ObjectId
+    # $principal = $p.ObjectId
+    $principal = Resolve-PrincipalObjectId -ObjectId $p.ObjectId -ApplicationId $p.ApplicationId Fail-IfNullPrincipal -ResolvedId $principal -Policy $p
     $appid     = $p.ApplicationId
     $tenantId  = $p.TenantId
 
